@@ -75,9 +75,7 @@ class TestSubmittingAReview:
 
     def test_the_note_is_marked_reviewed(self, client: TestClient, marina: Actor) -> None:
         note_id, analysis = analyzed_note(client, marina)
-        review = submit(
-            client, marina, analysis["analysis_id"], accepted_from(analysis)
-        ).json()
+        review = submit(client, marina, analysis["analysis_id"], accepted_from(analysis)).json()
 
         note = client.get(f"/api/v1/notes/{note_id}", headers=marina.headers).json()
 
@@ -138,9 +136,7 @@ class TestSubmittingAReview:
 
 
 class TestTheAiOutputIsPreserved:
-    def test_reviewing_does_not_alter_the_analysis(
-        self, client: TestClient, marina: Actor
-    ) -> None:
+    def test_reviewing_does_not_alter_the_analysis(self, client: TestClient, marina: Actor) -> None:
         """The single most important guarantee in the product."""
         _, analysis = analyzed_note(client, marina)
         conditions = accepted_from(analysis)
@@ -231,9 +227,7 @@ class TestReviewInvariants:
 
         assert response.status_code == 400
 
-    def test_rejecting_without_a_reason_is_refused(
-        self, client: TestClient, marina: Actor
-    ) -> None:
+    def test_rejecting_without_a_reason_is_refused(self, client: TestClient, marina: Actor) -> None:
         _, analysis = analyzed_note(client, marina)
         conditions = accepted_from(analysis)
         conditions[0]["action"] = "rejected"
@@ -243,9 +237,7 @@ class TestReviewInvariants:
 
         assert response.status_code == 400
 
-    def test_a_duplicated_condition_is_refused(
-        self, client: TestClient, marina: Actor
-    ) -> None:
+    def test_a_duplicated_condition_is_refused(self, client: TestClient, marina: Actor) -> None:
         _, analysis = analyzed_note(client, marina)
         conditions = accepted_from(analysis)
         conditions.append(dict(conditions[0]))
@@ -272,7 +264,8 @@ class TestReviewInvariants:
     ) -> None:
         response = submit(client, marina, "2f3b1c4d-0000-4000-8000-000000000000", [])
 
-        assert response.status_code == 409
+        assert response.status_code == 404
+        assert response.json()["error"]["code"] == "ANALYSIS_NOT_FOUND"
 
     def test_owner_uid_cannot_be_supplied_in_the_payload(
         self, client: TestClient, marina: Actor
@@ -296,13 +289,17 @@ class TestReviewAccessControl:
     def test_another_clinician_cannot_review_an_analysis(
         self, client: TestClient, marina: Actor, other_clinician: Actor
     ) -> None:
+        """404, not 409.
+
+        A conflict would tell the caller the analysis exists and already has a
+        review — the same disclosure a 403 would make.
+        """
         _, analysis = analyzed_note(client, marina)
 
-        response = submit(
-            client, other_clinician, analysis["analysis_id"], accepted_from(analysis)
-        )
+        response = submit(client, other_clinician, analysis["analysis_id"], accepted_from(analysis))
 
-        assert response.status_code == 409
+        assert response.status_code == 404
+        assert response.json()["error"]["code"] == "ANALYSIS_NOT_FOUND"
 
     def test_another_clinician_cannot_read_reviews(
         self, client: TestClient, marina: Actor, other_clinician: Actor

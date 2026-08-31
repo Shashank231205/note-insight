@@ -89,3 +89,46 @@ def test_an_unknown_note_id_is_also_a_404(client: TestClient, marina: Actor) -> 
 
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "NOTE_NOT_FOUND"
+
+
+class TestNotFoundDoesNotLeakExistence:
+    """A cross-tenant request must not be distinguishable from a missing one.
+
+    Every lookup is owner-scoped, so "does not exist" and "is not yours" are
+    the same fact. Returning different statuses for the two would let a client
+    enumerate other users' resources by watching the status code.
+    """
+
+    def test_reviewing_another_users_analysis_is_not_found_not_conflict(
+        self,
+        client: TestClient,
+        marina: Actor,
+        other_clinician: Actor,
+    ) -> None:
+        note_id = _create_note(client, marina)
+        analysis = client.post(
+            f"/api/v1/notes/{note_id}/analyses",
+            json={"force": False},
+            headers=marina.headers,
+        ).json()
+
+        response = client.post(
+            f"/api/v1/analyses/{analysis['analysis_id']}/reviews",
+            json={"reviewed_conditions": [], "reviewed_gaps": []},
+            headers=other_clinician.headers,
+        )
+
+        assert response.status_code == 404
+        assert response.json()["error"]["code"] == "ANALYSIS_NOT_FOUND"
+
+    def test_reviewing_an_analysis_that_never_existed_is_also_not_found(
+        self, client: TestClient, marina: Actor
+    ) -> None:
+        response = client.post(
+            "/api/v1/analyses/does-not-exist/reviews",
+            json={"reviewed_conditions": [], "reviewed_gaps": []},
+            headers=marina.headers,
+        )
+
+        assert response.status_code == 404
+        assert response.json()["error"]["code"] == "ANALYSIS_NOT_FOUND"

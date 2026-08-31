@@ -11,6 +11,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from src.core.errors import (
+    AnalysisNotFoundError,
     InvalidRequestError,
     NoteNotFoundError,
     ReviewConflictError,
@@ -49,7 +50,11 @@ class ReviewService:
     ) -> Review:
         analysis = await self._analyses.get(analysis_id, caller.uid)
         if analysis is None:
-            raise ReviewConflictError("The analysis being reviewed was not found.")
+            # Owner-scoped lookup, so "missing" and "someone else's" are the same
+            # answer here — and must stay the same answer to the caller. A 409
+            # would confirm the analysis exists and is already reviewed, which is
+            # exactly what a probing client wants to learn.
+            raise AnalysisNotFoundError
 
         note = await self._notes.get(analysis.note_id, caller.uid)
         if note is None:
@@ -87,14 +92,10 @@ class ReviewService:
         )
         return review
 
-    async def list_for_analysis(
-        self, caller: AuthenticatedUser, analysis_id: str
-    ) -> list[Review]:
+    async def list_for_analysis(self, caller: AuthenticatedUser, analysis_id: str) -> list[Review]:
         return await self._reviews.list_for_analysis(analysis_id, caller.uid)
 
-    def _assert_invariants(
-        self, analysis: Analysis, conditions: list[ReviewedCondition]
-    ) -> None:
+    def _assert_invariants(self, analysis: Analysis, conditions: list[ReviewedCondition]) -> None:
         if analysis.status is not AnalysisStatus.SUCCEEDED:
             raise InvalidRequestError("An analysis without valid output cannot be reviewed.")
 
@@ -111,9 +112,7 @@ class ReviewService:
             self._assert_condition_is_coherent(condition, known_ids)
 
     @staticmethod
-    def _assert_condition_is_coherent(
-        condition: ReviewedCondition, known_ids: set[str]
-    ) -> None:
+    def _assert_condition_is_coherent(condition: ReviewedCondition, known_ids: set[str]) -> None:
         """Origin, action and the referenced analysis must agree."""
         is_ai = condition.origin is ConditionOrigin.AI
         is_added = condition.action is ReviewAction.ADDED
