@@ -34,7 +34,12 @@ testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    # google.api_core warns about the local Python 3.10 toolchain; the deployed
+    # container runs 3.11. Scoped narrowly so real warnings still fail the suite.
+    "ignore:You are using a Python version:FutureWarning",
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["src", "tests"]
