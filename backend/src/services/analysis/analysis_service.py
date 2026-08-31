@@ -53,9 +53,7 @@ class AnalysisService:
         self._notes = notes
         self._prompt_version = prompt_version
 
-    async def analyze(
-        self, caller: AuthenticatedUser, note: Note, force: bool = False
-    ) -> Analysis:
+    async def analyze(self, caller: AuthenticatedUser, note: Note, force: bool = False) -> Analysis:
         if not force:
             cached = await self._analyses.find_cached(
                 owner_uid=caller.uid,
@@ -68,7 +66,9 @@ class AnalysisService:
                     "analysis_cache_hit",
                     extra={"note_id": note.note_id, "analysis_id": cached.analysis_id},
                 )
-                return cached
+                # The stored document keeps cache_hit False — it records how that
+                # analysis was produced. This copy records how the caller got it.
+                return cached.model_copy(update={"cache_hit": True})
 
         analysis = await self._run_pipeline(caller, note)
         stored = await self._analyses.create(analysis)

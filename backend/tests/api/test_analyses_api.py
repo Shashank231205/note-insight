@@ -39,9 +39,7 @@ def submit_note(client: TestClient, actor: Actor, content: str = CLINICAL_NOTE) 
 JsonObject = dict[str, Any]
 
 
-def analyze(
-    client: TestClient, actor: Actor, note_id: str, force: bool = False
-) -> JsonObject:
+def analyze(client: TestClient, actor: Actor, note_id: str, force: bool = False) -> JsonObject:
     response = client.post(
         f"/api/v1/notes/{note_id}/analyses",
         json={"force": force},
@@ -283,9 +281,7 @@ class TestAnalysisAccessControl:
         note_id = submit_note(client, marina)
         analyze(client, marina, note_id)
 
-        response = client.get(
-            f"/api/v1/notes/{note_id}/analyses", headers=other_clinician.headers
-        )
+        response = client.get(f"/api/v1/notes/{note_id}/analyses", headers=other_clinician.headers)
 
         assert response.status_code == 404
 
@@ -328,3 +324,34 @@ class TestRateLimiting:
         assert last_response is not None
         assert last_response.status_code == 429
         assert int(last_response.headers["Retry-After"]) > 0
+
+
+class TestCacheReporting:
+    """cache_hit describes the response, not the stored record.
+
+    Persisted analyses always record False — that is how they were produced.
+    A response served from an earlier identical run reports True, so the UI can
+    say "reused an earlier analysis" instead of implying a fresh model call
+    that never happened.
+    """
+
+    def test_a_repeat_analysis_reports_a_cache_hit(self, client: TestClient, marina: Actor) -> None:
+        note_id = submit_note(client, marina)
+        first = analyze(client, marina, note_id)
+
+        second = analyze(client, marina, note_id)
+
+        assert first["cache_hit"] is False
+        assert second["cache_hit"] is True
+        assert second["analysis_id"] == first["analysis_id"]
+
+    def test_a_forced_analysis_is_never_a_cache_hit(
+        self, client: TestClient, marina: Actor
+    ) -> None:
+        note_id = submit_note(client, marina)
+        first = analyze(client, marina, note_id)
+
+        forced = analyze(client, marina, note_id, force=True)
+
+        assert forced["cache_hit"] is False
+        assert forced["analysis_id"] != first["analysis_id"]

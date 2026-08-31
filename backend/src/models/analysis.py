@@ -119,6 +119,11 @@ class Analysis(BaseModel):
 
     latency_ms: int
     token_usage: TokenUsage | None
+
+    # Describes this *response*, not the stored record: True when the analysis
+    # was served from an earlier identical run instead of a fresh model call.
+    # Persisted as False and set on the way out, so latency_ms and token_usage
+    # keep describing the call that actually produced the output.
     cache_hit: bool
 
     created_at: datetime
