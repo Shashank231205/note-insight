@@ -8,6 +8,7 @@ import {
 import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { auth } from '@/lib/firebase';
+import { fetchCurrentUser } from '@/services/notesApi';
 
 export interface AuthContextValue {
   readonly user: User | null;
@@ -31,6 +32,14 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     return onAuthStateChanged(auth, (nextUser) => {
       setUser(nextUser);
       setIsInitializing(false);
+
+      if (nextUser !== null) {
+        // Announce the session to the backend so it can mirror the Firebase
+        // identity into Firestore. Notes are attributed by uid, so this is not
+        // on the critical path — a failure here must not block a signed-in
+        // clinician from working, and the mirror is repaired on the next sign-in.
+        void fetchCurrentUser().catch(() => undefined);
+      }
     });
   }, []);
 
