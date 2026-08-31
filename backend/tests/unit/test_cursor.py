@@ -29,8 +29,6 @@ def test_cursor_without_a_document_id_is_rejected() -> None:
 
 
 def test_cursor_with_an_unparseable_timestamp_is_rejected() -> None:
-
-
     encoded = base64.urlsafe_b64encode(b"not-a-date|abc").decode("ascii")
 
     with pytest.raises(InvalidRequestError):

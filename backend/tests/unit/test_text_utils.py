@@ -15,7 +15,7 @@ def test_word_count_of_empty_text_is_zero() -> None:
 
 
 def test_normalization_folds_typographic_quotes_and_case() -> None:
-    assert normalize_for_matching("Patient’s “A1c”") == "patient's \"a1c\""
+    assert normalize_for_matching("Patient’s “A1c”") == 'patient\'s "a1c"'
 
 
 def test_normalization_collapses_internal_whitespace() -> None:

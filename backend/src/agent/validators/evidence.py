@@ -68,9 +68,7 @@ class EvidenceVerifier:
 
         exact_offset = self._original.find(quote)
         if exact_offset != -1:
-            return QuoteMatch(
-                QuoteVerificationStatus.EXACT, 1.0, exact_offset, len(quote)
-            )
+            return QuoteMatch(QuoteVerificationStatus.EXACT, 1.0, exact_offset, len(quote))
 
         normalized_quote = normalize_for_matching(quote)
         if not normalized_quote:

@@ -84,9 +84,7 @@ class TestNoteValidation:
 
         assert response.status_code == 201
 
-    def test_a_five_thousand_word_note_is_rejected(
-        self, client: TestClient, marina: Actor
-    ) -> None:
+    def test_a_five_thousand_word_note_is_rejected(self, client: TestClient, marina: Actor) -> None:
         response = client.post(
             "/api/v1/notes", json={"content": note_of(5000)}, headers=marina.headers
         )
