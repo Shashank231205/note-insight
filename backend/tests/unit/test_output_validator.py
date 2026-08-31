@@ -68,11 +68,24 @@ class TestMalformedOutput:
         assert result.failure is not None
         assert result.failure.code is OutputFailureCode.NOT_JSON
 
-    def test_truncated_json_is_reported_as_not_json(self) -> None:
+    def test_truncated_json_is_distinguished_from_prose(self) -> None:
+        """Output cut off mid-object is TRUNCATED, not NOT_JSON.
+
+        Observed against the live model: thinking tokens consumed the output
+        budget and the JSON stopped mid-string. Both codes mean "unusable", but
+        only this one is fixed by giving the model more room, so the failure
+        record has to tell them apart.
+        """
         result = parse_analysis_output('{"summary": "Follow-up", "conditions": [{"condition_')
 
         assert result.failure is not None
-        assert result.failure.code is OutputFailureCode.NOT_JSON
+        assert result.failure.code is OutputFailureCode.TRUNCATED
+
+    def test_an_unclosed_array_is_also_truncated(self) -> None:
+        result = parse_analysis_output('{"summary": "Follow-up", "conditions": [')
+
+        assert result.failure is not None
+        assert result.failure.code is OutputFailureCode.TRUNCATED
 
     def test_a_missing_required_field_is_a_schema_mismatch(self) -> None:
         payload = json.loads(json.dumps(VALID_PAYLOAD))

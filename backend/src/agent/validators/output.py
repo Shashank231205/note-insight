@@ -31,6 +31,7 @@ RAW_EXCERPT_LIMIT = 500
 class OutputFailureCode(str, Enum):
     EMPTY_RESPONSE = "empty_response"
     NOT_JSON = "not_json"
+    TRUNCATED = "truncated"
     SCHEMA_MISMATCH = "schema_mismatch"
 
 
@@ -49,6 +50,17 @@ class OutputParseResult:
     @property
     def succeeded(self) -> bool:
         return self.analysis is not None
+
+
+def _looks_truncated(text: str) -> bool:
+    """True when the text opens a JSON object that never closes.
+
+    Distinguishes "the model wrote prose instead of JSON" from "the model was
+    writing valid JSON and ran out of output budget". Both are unusable, but
+    only the second is fixed by raising the token limit, so the failure record
+    should not conflate them.
+    """
+    return text.lstrip().startswith(("{", "[")) and _recover_json_object(text) is None
 
 
 def _recover_json_object(text: str) -> str | None:
@@ -107,11 +119,16 @@ def parse_analysis_output(raw_text: str) -> OutputParseResult:
     except json.JSONDecodeError:
         recovered = _recover_json_object(candidate)
         if recovered is None:
+            truncated = _looks_truncated(candidate)
             return OutputParseResult(
                 analysis=None,
                 failure=OutputFailure(
-                    code=OutputFailureCode.NOT_JSON,
-                    message="The model response did not contain a JSON object.",
+                    code=(OutputFailureCode.TRUNCATED if truncated else OutputFailureCode.NOT_JSON),
+                    message=(
+                        "The model response was cut off before the JSON object was complete."
+                        if truncated
+                        else "The model response did not contain a JSON object."
+                    ),
                     raw_excerpt=truncate(candidate, RAW_EXCERPT_LIMIT),
                 ),
             )
