@@ -30,6 +30,10 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 
+# Local TLS workaround (Avast intercepts HTTPS on this machine; the bundle is
+# machine-specific and must not be shared)
+backend/certs/
+
 # Editors / OS
 .vscode/
 .idea/
