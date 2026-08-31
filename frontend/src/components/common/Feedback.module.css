@@ -1,0 +1,92 @@
+.block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-7) var(--space-4);
+  text-align: center;
+}
+
+.spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.spinnerRing {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--color-border-strong);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinnerRing {
+    animation-duration: 2s;
+  }
+}
+
+.spinnerLabel {
+  font-weight: 500;
+}
+
+.emptyTitle {
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.emptyDescription {
+  color: var(--color-text-muted);
+  max-width: 44ch;
+}
+
+.error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-status-bad);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  background: var(--color-status-bad-soft);
+}
+
+.errorTitle {
+  font-weight: 600;
+  color: var(--color-status-bad);
+}
+
+.errorMessage {
+  color: var(--color-text);
+}
+
+.retry {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-status-bad);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-status-bad);
+  font-weight: 500;
+}
+
+.retry:hover {
+  background: var(--color-status-bad);
+  color: var(--color-surface);
+}
+
+.requestId {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+}
