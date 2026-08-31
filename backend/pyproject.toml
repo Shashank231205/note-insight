@@ -1,0 +1,37 @@
+[project]
+name = "note-insight-backend"
+version = "1.0.0"
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "RET", "ARG", "PTH", "ERA"]
+ignore = ["B008"]  # FastAPI Depends() in defaults is the framework idiom.
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ARG001", "ARG002"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_unreachable = true
+disallow_untyped_decorators = false
+plugins = ["pydantic.mypy"]
+
+
+namespace_packages = true
+
+[[tool.mypy.overrides]]
+module = ["firebase_admin.*", "google.genai.*", "pythonjsonlogger.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["error"]
