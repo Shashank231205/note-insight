@@ -1,0 +1,56 @@
+:root {
+  /* Neutrals */
+  --color-bg: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f1f3f6;
+  --color-border: #dde1e7;
+  --color-border-strong: #c2c9d2;
+  --color-text: #1a1f27;
+  --color-text-muted: #5b6572;
+  --color-text-subtle: #838d99;
+
+  /* Brand */
+  --color-primary: #1f5fd4;
+  --color-primary-hover: #1a4fb0;
+  --color-primary-soft: #e8f0fd;
+
+  /* Documentation status — the primary scanning signal */
+  --color-status-good: #1a7f52;
+  --color-status-good-soft: #e4f4ec;
+  --color-status-warn: #9a6200;
+  --color-status-warn-soft: #fdf0d9;
+  --color-status-bad: #b3341f;
+  --color-status-bad-soft: #fbe9e6;
+
+  /* Evidence verification */
+  --color-verified: #1a7f52;
+  --color-unverified: #b3341f;
+  --color-highlight: #fff2a8;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.08);
+
+  --max-content-width: 1120px;
+}
