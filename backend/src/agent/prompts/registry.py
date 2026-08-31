@@ -14,16 +14,18 @@ from pathlib import Path
 PROMPT_DIRECTORY = Path(__file__).parent
 NOTE_PLACEHOLDER = "{note_content}"
 
+# Older versions stay registered: analyses recorded under them remain
+# reproducible, and the version is part of the cache key, so a prompt change
+# must arrive as a new entry rather than an edit to an existing one.
 _PROMPT_FILES = {
     "v1": "v1_note_analysis.md",
+    "v2": "v2_note_analysis.md",
 }
 
 
 class UnknownPromptVersionError(ValueError):
     def __init__(self, version: str) -> None:
-        super().__init__(
-            f"Unknown prompt version '{version}'. Available: {sorted(_PROMPT_FILES)}."
-        )
+        super().__init__(f"Unknown prompt version '{version}'. Available: {sorted(_PROMPT_FILES)}.")
 
 
 @lru_cache(maxsize=len(_PROMPT_FILES))
