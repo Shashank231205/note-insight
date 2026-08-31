@@ -72,6 +72,7 @@ No password material ever touches Firestore — Firebase Auth owns credentials e
 |---|---|---|
 | `analysis_id` | string (uuid4) | system |
 | `note_id`, `owner_uid` | string | system |
+| `content_hash` | string | system | denormalized from the note so a cache lookup is one query, not a join Firestore cannot express |
 | `status` | enum `succeeded` \| `invalid_output` \| `provider_error` | system |
 | `provider` | enum `gemini` \| `mock` | system |
 | `model_id` | string (e.g. `gemini-2.5-flash`) | system |
