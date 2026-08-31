@@ -12,7 +12,8 @@ from google.cloud.firestore import Client as FirestoreClient
 
 from src.agent.providers.base import LLMProvider
 from src.agent.providers.mock import MockLLMProvider
-from src.core.config import LLMProviderName, Settings, get_settings
+from src.api.dependencies.settings import get_request_settings
+from src.core.config import LLMProviderName, Settings
 from src.core.firebase import get_firestore_client
 from src.repositories.analysis_repository import FirestoreAnalysisRepository
 from src.repositories.base import (
@@ -63,7 +64,7 @@ class RepositoryRegistry:
 
 
 def get_repositories(
-    request: Request, settings: Settings = Depends(get_settings)
+    request: Request, settings: Settings = Depends(get_request_settings)
 ) -> RepositoryRegistry:
     existing = getattr(request.app.state, REPOSITORIES_STATE_KEY, None)
     if isinstance(existing, RepositoryRegistry):
@@ -88,7 +89,7 @@ def get_note_service(
 
 def get_llm_provider(
     request: Request,
-    settings: Settings = Depends(get_settings),
+    settings: Settings = Depends(get_request_settings),
 ) -> LLMProvider:
     """Select the provider named in configuration.
 
@@ -101,6 +102,9 @@ def get_llm_provider(
 
     provider: LLMProvider
     if settings.llm_provider is LLMProviderName.GEMINI:
+        # Imported here rather than at module scope so a mock-provider run never
+        # loads the Gemini SDK — tests and local development stay independent of
+        # it, and an SDK import error surfaces only for the config that uses it.
         from src.agent.providers.gemini import GeminiProvider
 
         provider = GeminiProvider(settings)
@@ -112,7 +116,7 @@ def get_llm_provider(
 
 
 def get_analysis_service(
-    settings: Settings = Depends(get_settings),
+    settings: Settings = Depends(get_request_settings),
     repositories: RepositoryRegistry = Depends(get_repositories),
     provider: LLMProvider = Depends(get_llm_provider),
 ) -> AnalysisService:

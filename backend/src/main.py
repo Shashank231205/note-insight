@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.api.dependencies.settings import SETTINGS_STATE_KEY
 from src.api.middleware import BodySizeLimitMiddleware, RequestContextMiddleware
 from src.api.routes import analyses, health, notes, reviews, users
 from src.core.config import Settings, get_settings
@@ -14,8 +15,8 @@ API_PREFIX = "/api/v1"
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    settings = get_settings()
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    settings: Settings = getattr(app.state, SETTINGS_STATE_KEY)
     settings.validate_runtime_readiness()
     get_logger(__name__).info(
         "application_started",
@@ -35,6 +36,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         redoc_url=None,
         lifespan=lifespan,
     )
+
+    setattr(app.state, SETTINGS_STATE_KEY, settings)
 
     app.add_middleware(RequestContextMiddleware)
     app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.max_request_body_bytes)

@@ -16,7 +16,8 @@ from dataclasses import dataclass
 
 from fastapi import Depends, Request
 
-from src.core.config import Settings, get_settings
+from src.api.dependencies.settings import get_request_settings
+from src.core.config import Settings
 from src.core.errors import RateLimitedError
 from src.models.user import AuthenticatedUser
 
@@ -57,7 +58,7 @@ class TokenBucketRateLimiter:
 
 def get_rate_limiter(
     request: Request,
-    settings: Settings = Depends(get_settings),
+    settings: Settings = Depends(get_request_settings),
 ) -> TokenBucketRateLimiter:
     existing = getattr(request.app.state, LIMITER_STATE_KEY, None)
     if isinstance(existing, TokenBucketRateLimiter):

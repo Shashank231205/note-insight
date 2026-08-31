@@ -10,7 +10,8 @@ import asyncio
 
 from fastapi import Depends, Header, Request
 
-from src.core.config import Settings, get_settings
+from src.api.dependencies.settings import get_request_settings
+from src.core.config import Settings
 from src.core.security import FirebaseTokenVerifier, TokenVerifier, extract_bearer_token
 from src.models.user import AuthenticatedUser
 
@@ -19,7 +20,7 @@ VERIFIER_STATE_KEY = "token_verifier"
 
 def get_token_verifier(
     request: Request,
-    settings: Settings = Depends(get_settings),
+    settings: Settings = Depends(get_request_settings),
 ) -> TokenVerifier:
     """Return the app's verifier, building the Firebase one on first use.
 
