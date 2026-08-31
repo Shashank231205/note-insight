@@ -27,6 +27,7 @@ from src.repositories.user_repository import FirestoreUserRepository
 from src.services.analysis.analysis_service import AnalysisService
 from src.services.auth.user_service import UserService
 from src.services.notes.note_service import NoteService
+from src.services.review.review_service import ReviewService
 
 REPOSITORIES_STATE_KEY = "repositories"
 PROVIDER_STATE_KEY = "llm_provider"
@@ -120,4 +121,14 @@ def get_analysis_service(
         analyses=repositories.analyses,
         notes=repositories.notes,
         prompt_version=settings.prompt_version,
+    )
+
+
+def get_review_service(
+    repositories: RepositoryRegistry = Depends(get_repositories),
+) -> ReviewService:
+    return ReviewService(
+        reviews=repositories.reviews,
+        analyses=repositories.analyses,
+        notes=repositories.notes,
     )

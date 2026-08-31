@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.middleware import BodySizeLimitMiddleware, RequestContextMiddleware
-from src.api.routes import analyses, health, notes, users
+from src.api.routes import analyses, health, notes, reviews, users
 from src.core.config import Settings, get_settings
 from src.core.exception_handlers import register_exception_handlers
 from src.core.logger import configure_logging, get_logger
@@ -53,6 +53,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(notes.router, prefix=API_PREFIX)
     app.include_router(analyses.note_scoped_router, prefix=API_PREFIX)
     app.include_router(analyses.analysis_router, prefix=API_PREFIX)
+    app.include_router(reviews.router, prefix=API_PREFIX)
 
     return app
 

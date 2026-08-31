@@ -26,7 +26,7 @@ plugins = ["pydantic.mypy"]
 namespace_packages = true
 
 [[tool.mypy.overrides]]
-module = ["firebase_admin.*", "google.genai.*", "pythonjsonlogger.*"]
+module = ["firebase_admin.*", "google.*", "pythonjsonlogger.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
