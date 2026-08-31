@@ -4,17 +4,22 @@ import { Link, useParams } from 'react-router-dom';
 import { AnalysisPanel } from '@/components/analysis/AnalysisPanel';
 import { EmptyState, ErrorState, LoadingState, Spinner } from '@/components/common/Feedback';
 import { NoteHighlighter } from '@/components/notes/NoteHighlighter';
+import { ReviewPanel } from '@/components/review/ReviewPanel';
 import { useAsync } from '@/hooks/useAsync';
 import { ApiError } from '@/services/apiClient';
 import { fetchAnalysesForNote, fetchNote, runAnalysis } from '@/services/notesApi';
-import type { AnalysisResponse, NoteResponse } from '@/types/api';
+import { fetchReviewsForAnalysis } from '@/services/reviewsApi';
+import type { AnalysisResponse, NoteResponse, ReviewResponse } from '@/types/api';
 import { formatDate, formatDateTime } from '@/utils/text';
 
 import styles from './NoteDetailPage.module.css';
 
+type Mode = 'view' | 'review';
+
 interface NoteDetail {
   readonly note: NoteResponse;
   readonly analyses: readonly AnalysisResponse[];
+  readonly latestReview: ReviewResponse | null;
 }
 
 export function NoteDetailPage(): JSX.Element {
@@ -22,6 +27,7 @@ export function NoteDetailPage(): JSX.Element {
   const [activeConditionId, setActiveConditionId] = useState<string | null>(null);
   const [isReanalyzing, setIsReanalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<ApiError | null>(null);
+  const [mode, setMode] = useState<Mode>('view');
 
   const { state, reload } = useAsync<NoteDetail>(
     async (signal) => {
@@ -30,7 +36,12 @@ export function NoteDetailPage(): JSX.Element {
         fetchNote(id, signal),
         fetchAnalysesForNote(id, signal),
       ]);
-      return { note, analyses };
+
+      const newest = analyses.at(0) ?? null;
+      const reviews =
+        newest === null ? [] : await fetchReviewsForAnalysis(newest.analysis_id, signal);
+
+      return { note, analyses, latestReview: reviews.at(0) ?? null };
     },
     [noteId],
   );
@@ -78,8 +89,9 @@ export function NoteDetailPage(): JSX.Element {
     );
   }
 
-  const { note, analyses } = state.data;
+  const { note, analyses, latestReview } = state.data;
   const latest = analyses.at(0) ?? null;
+  const canReview = latest !== null && latest.status === 'succeeded';
 
   return (
     <div className={styles.page}>
@@ -149,17 +161,57 @@ export function NoteDetailPage(): JSX.Element {
         </section>
 
         <section className={styles.analysisColumn}>
-          {latest === null ? (
+          {canReview && (
+            <div className={styles.modeSwitch} role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === 'view'}
+                className={mode === 'view' ? styles.modeActive : styles.mode}
+                onClick={() => {
+                  setMode('view');
+                }}
+              >
+                Model output
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === 'review'}
+                className={mode === 'review' ? styles.modeActive : styles.mode}
+                onClick={() => {
+                  setMode('review');
+                }}
+              >
+                {latestReview === null ? 'Review' : 'Edit review'}
+              </button>
+            </div>
+          )}
+
+          {latest === null && (
             <EmptyState
               title="Not analyzed yet"
               description="This note is saved but has no analysis. Run one when you are ready."
             />
-          ) : (
+          )}
+
+          {latest !== null && mode === 'view' && (
             <AnalysisPanel
               analysis={latest}
               onHighlight={setActiveConditionId}
               onReanalyze={() => {
                 handleAnalyze(true);
+              }}
+            />
+          )}
+
+          {latest !== null && mode === 'review' && canReview && (
+            <ReviewPanel
+              analysis={latest}
+              savedReview={latestReview}
+              onSubmitted={() => {
+                setMode('view');
+                reload();
               }}
             />
           )}
