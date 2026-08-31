@@ -10,7 +10,9 @@ from __future__ import annotations
 from fastapi import Depends, Request
 from google.cloud.firestore import Client as FirestoreClient
 
-from src.core.config import Settings, get_settings
+from src.agent.providers.base import LLMProvider
+from src.agent.providers.mock import MockLLMProvider
+from src.core.config import LLMProviderName, Settings, get_settings
 from src.core.firebase import get_firestore_client
 from src.repositories.analysis_repository import FirestoreAnalysisRepository
 from src.repositories.base import (
@@ -22,10 +24,12 @@ from src.repositories.base import (
 from src.repositories.note_repository import FirestoreNoteRepository
 from src.repositories.review_repository import FirestoreReviewRepository
 from src.repositories.user_repository import FirestoreUserRepository
+from src.services.analysis.analysis_service import AnalysisService
 from src.services.auth.user_service import UserService
 from src.services.notes.note_service import NoteService
 
 REPOSITORIES_STATE_KEY = "repositories"
+PROVIDER_STATE_KEY = "llm_provider"
 
 
 class RepositoryRegistry:
@@ -79,3 +83,41 @@ def get_note_service(
     repositories: RepositoryRegistry = Depends(get_repositories),
 ) -> NoteService:
     return NoteService(repositories.notes)
+
+
+def get_llm_provider(
+    request: Request,
+    settings: Settings = Depends(get_settings),
+) -> LLMProvider:
+    """Select the provider named in configuration.
+
+    Held on app state so the instance (and its key pool) is shared across
+    requests rather than rebuilt per call.
+    """
+    existing = getattr(request.app.state, PROVIDER_STATE_KEY, None)
+    if isinstance(existing, LLMProvider):
+        return existing
+
+    provider: LLMProvider
+    if settings.llm_provider is LLMProviderName.GEMINI:
+        from src.agent.providers.gemini import GeminiProvider
+
+        provider = GeminiProvider(settings)
+    else:
+        provider = MockLLMProvider()
+
+    setattr(request.app.state, PROVIDER_STATE_KEY, provider)
+    return provider
+
+
+def get_analysis_service(
+    settings: Settings = Depends(get_settings),
+    repositories: RepositoryRegistry = Depends(get_repositories),
+    provider: LLMProvider = Depends(get_llm_provider),
+) -> AnalysisService:
+    return AnalysisService(
+        provider=provider,
+        analyses=repositories.analyses,
+        notes=repositories.notes,
+        prompt_version=settings.prompt_version,
+    )
