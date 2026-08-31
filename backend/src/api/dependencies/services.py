@@ -23,6 +23,7 @@ from src.repositories.note_repository import FirestoreNoteRepository
 from src.repositories.review_repository import FirestoreReviewRepository
 from src.repositories.user_repository import FirestoreUserRepository
 from src.services.auth.user_service import UserService
+from src.services.notes.note_service import NoteService
 
 REPOSITORIES_STATE_KEY = "repositories"
 
@@ -72,3 +73,9 @@ def get_user_service(
     repositories: RepositoryRegistry = Depends(get_repositories),
 ) -> UserService:
     return UserService(repositories.users)
+
+
+def get_note_service(
+    repositories: RepositoryRegistry = Depends(get_repositories),
+) -> NoteService:
+    return NoteService(repositories.notes)
