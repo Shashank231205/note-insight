@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import time
 
+import httpx
 from google import genai
 from google.genai import types as genai_types
 from google.genai.errors import APIError, ClientError, ServerError
@@ -75,7 +76,12 @@ class GeminiProvider:
                     continue
                 logger.warning("gemini_request_failed", extra={"status_code": exc.code})
                 raise ProviderUnavailableError from exc
-            except (APIError, asyncio.TimeoutError) as exc:
+            except (APIError, asyncio.TimeoutError, httpx.HTTPError, OSError) as exc:
+                # Transport-level failures — DNS, TLS, connection reset, read
+                # timeout — never reach the API layer as themselves. They mean
+                # the model could not be reached, which is the same outcome for
+                # the clinician as a provider outage: a 503 with a retry hint,
+                # not a 500 that reads as a bug in the application.
                 logger.warning("gemini_call_failed", extra={"error": type(exc).__name__})
                 raise ProviderUnavailableError from exc
 
@@ -91,6 +97,14 @@ class GeminiProvider:
             response_schema=self._response_schema,
             max_output_tokens=self._settings.llm_max_output_tokens,
             temperature=0.1,
+            # Thinking is disabled deliberately. On 2.5 models it is on by
+            # default and its tokens are drawn from max_output_tokens, so a
+            # note that provokes long reasoning silently truncates the JSON
+            # mid-object — the model appears to fail schema validation when it
+            # actually ran out of room to finish writing. Extraction grounded
+            # in quoted source text gains little from it, and switching it off
+            # also removes roughly fifteen seconds of latency per call.
+            thinking_config=genai_types.ThinkingConfig(thinking_budget=0),
         )
         return await asyncio.wait_for(
             client.aio.models.generate_content(
