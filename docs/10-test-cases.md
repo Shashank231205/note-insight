@@ -86,10 +86,18 @@ so the claim "this quote is from your note" has to be checked rather than truste
 Every sentence exists — at characters 562, 1510 and 1962, in three different sections. The
 contiguous quote does not exist. The verifier reported `not_found` at similarity 0.59 and the
 condition was kept and flagged. Prompt v2 now bans assembled quotes explicitly; verification went
-from 2/6 to 13/13 across all three sample notes.
+from 2/6 to 6/6 on that note, and to 13/19 across all three.
 
-**Regression check.** Re-run this case after any prompt change. A drop in the verified count is
-the signal that the prompt has regressed.
+**Known residual failure.** Note 03 verifies only **4 of 10**. Its medication list is one long
+sentence, and to cite a single drug the model joins the list's opening words to a drug appearing
+later in it — a real prefix plus a real drug, in an order that is not in the note. A third prompt
+version written specifically against this changed nothing and was not shipped. The verifier
+flags all six; none reaches the clinician as unchallenged fact.
+
+**Regression check.** Re-run this case after any prompt change. Current baseline is
+**6/6, 3/3, 4/10**. A fall below that means the prompt has regressed. Measure it on the note body
+only — including the file's `Expected findings:` header feeds the model the answer key and
+inflates the result, which is how an earlier draft of these docs came to claim 13/13.
 
 ---
 

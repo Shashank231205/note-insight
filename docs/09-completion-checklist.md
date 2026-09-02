@@ -46,7 +46,7 @@ Legend: **DONE** verified working · **CUT** deliberate, documented · **PENDING
 | 3.7 | Overall summary | DONE | `AnalysisOutput.summary` | Live |
 | 3.8 | Schema-validated before DB or UI | DONE | `validators/output.py` + Pydantic | `test_output_validator.py` |
 | 3.9 | No regex / string-split parsing | DONE | `response_schema` + `json.loads` | Code review |
-| 3.10 | Evidence traceable to the note | DONE | `validators/evidence.py` | **Caught a real fabrication live**; 13/13 verified after the v2 prompt |
+| 3.10 | Evidence traceable to the note | DONE | `validators/evidence.py` | **Caught a real fabrication live**; 13/19 verified under v2 (6/6, 3/3, 4/10) |
 | 3.11 | Malformed output handled deliberately | DONE | 4 failure codes, persisted | `test_output_validator.py`; hit live as `truncated` |
 
 ## 4. Human review (brief §3.4)
@@ -147,7 +147,7 @@ Each was found by running the real system, not by reading the code.
 | 4 | `google-genai` pinned at 0.5.0 | Predates thinking config | Upgraded to 2.20.0 |
 | 5 | Routes read cached global settings, not injected ones | Tests silently called live Gemini; 38 failures | `get_request_settings` from app state |
 | 6 | Transport errors escaped as HTTP 500 | Network blip looked like an application bug | Caught in the provider → 503 |
-| 7 | Model assembled quotes from separate passages | 4 of 6 conditions falsely flagged unverified | Prompt v2 bans it explicitly; 13/13 verified |
+| 7 | Model assembled quotes from separate passages | 4 of 6 conditions flagged unverified on note 01 | Prompt v2 bans it explicitly; note 01 now 6/6. Note 03 still 4/10 — documented, not hidden |
 | 8 | Prompt edited without a version bump | Cache would serve stale analyses | v1 retained, change shipped as v2 |
 | 9 | Reviewing another user's analysis returned 409 | Leaked that the analysis existed | Now 404 `ANALYSIS_NOT_FOUND` |
 | 10 | `cache_hit` was stored `False` and never updated | Could never be true — a field that lied | Now describes the response |

@@ -281,11 +281,37 @@ quote:
 
 Every sentence is real. They sit at characters 562, 1510 and 1962 — three different sections of
 the note. The contiguous quote does not exist. The verifier flagged it; the prompt was tightened
-in v2 to ban assembled quotes explicitly; verification went from 2/6 to **13/13 across all three
-sample notes**.
+in v2 to ban assembled quotes explicitly; verification on that note went from 2/6 to **6/6**.
 
 The v1 prompt already forbade stitching, in prose. The model did it anyway. That is the argument
 for the verifier: instructions are not enforcement.
+
+### Where it still fails, measured honestly
+
+Across the three sample notes under v2, **13 of 19 quotes verify exactly**:
+
+| Note | Verified |
+|---|---|
+| `01-diabetes-ambiguous` | 6 / 6 |
+| `02-chf-well-documented` | 3 / 3 |
+| `03-polypharmacy-gaps` | **4 / 10** |
+
+Note 03 is a medication-reconciliation note whose drug list is one long sentence. To cite a single
+drug, the model repeatedly produces `"Current medication list reviewed: amlodipine 5 milligrams
+daily"` — a real prefix joined to a drug that appears later in the sentence, so not a substring.
+The six failures on that note are all this one shape.
+
+I wrote a third prompt version targeting exactly this, with the failing string as a worked
+example. **It changed nothing** — same 4/10, same conditions. I did not ship it, because a prompt
+revision that cannot be shown to work is noise in the version history and a lie in the cache key.
+
+So the honest position is: the prompt reduces this failure, it does not eliminate it, and the
+verifier is what makes that acceptable. Those six conditions reach the clinician clearly marked
+as unverified rather than silently presented as quoted fact.
+
+One earlier draft of this README claimed 13/13 across all three notes. That figure was measured
+through a test harness that failed to strip the sample file's `Expected findings:` header, so the
+model was reading the answer key. The numbers above are from the note body alone.
 
 ---
 
