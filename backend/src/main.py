@@ -32,7 +32,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title="Note Insight API",
         version=settings.api_version,
-        docs_url="/docs" if not settings.is_production else None,
+        # Disabling the docs UI while still serving the schema it renders would
+        # hide nothing: /openapi.json is the API surface in machine-readable
+        # form. Both go together.
+        docs_url=None if settings.is_production else "/docs",
+        openapi_url=None if settings.is_production else "/openapi.json",
         redoc_url=None,
         lifespan=lifespan,
     )
