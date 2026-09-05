@@ -1,0 +1,29 @@
+# Keep secrets, caches and test material out of the build context. Anything
+# copied in is in the published image layer even if a later step deletes it.
+
+.env
+.env.*
+certs/
+*.pem
+*-firebase-adminsdk-*.json
+service-account.json
+
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+tests/
+scripts/
+pyproject.toml
+requirements-dev.txt
+
+.git/
+.gitignore
+Dockerfile
+.dockerignore
