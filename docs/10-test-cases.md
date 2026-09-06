@@ -88,11 +88,16 @@ contiguous quote does not exist. The verifier reported `not_found` at similarity
 condition was kept and flagged. Prompt v2 now bans assembled quotes explicitly; verification went
 from 2/6 to 6/6 on that note, and to 13/19 across all three.
 
-**Known residual failure.** Note 03 verifies only **4 of 10**. Its medication list is one long
-sentence, and to cite a single drug the model joins the list's opening words to a drug appearing
-later in it — a real prefix plus a real drug, in an order that is not in the note. A third prompt
-version written specifically against this changed nothing and was not shipped. The verifier
-flags all six; none reaches the clinician as unchallenged fact.
+**Assembled quotes.** Note 03 verifies 4 of 10 as contiguous passages. The other six are
+`assembled`: every fragment is in the note, but the passage is not — the model joins the
+medication list's opening words to a drug appearing later in it. They are shown with a warning,
+excluded from the verified count, and highlighted at their longest genuine fragment. A third
+prompt version aimed at this changed nothing and was not shipped; the fix belonged in the
+verifier, which previously had two answers for three situations.
+
+Two boundaries to check by hand if you want to confirm the status is not laundering fabrications:
+a real prefix with an invented drug, and a real sentence with the dose removed, both stay
+`not_found`.
 
 **Regression check.** Re-run this case after any prompt change. Current baseline is
 **6/6, 3/3, 4/10**. A fall below that means the prompt has regressed. Measure it on the note body

@@ -321,28 +321,57 @@ in v2 to ban assembled quotes explicitly; verification on that note went from 2/
 The v1 prompt already forbade stitching, in prose. The model did it anyway. That is the argument
 for the verifier: instructions are not enforcement.
 
-### Where it still fails, measured honestly
+### Assembled quotes: a third answer, because two were not enough
 
-Across the three sample notes under v2, **13 of 19 quotes verify exactly**:
+Across the three sample notes, 13 of 19 quotes verify as contiguous passages. The six that do not
+are all one shape, and it is worth being precise about it — the fix came from taking it seriously
+rather than from prompting harder.
 
-| Note | Verified |
-|---|---|
-| `01-diabetes-ambiguous` | 6 / 6 |
-| `02-chf-well-documented` | 3 / 3 |
-| `03-polypharmacy-gaps` | **4 / 10** |
+`03-polypharmacy-gaps` is a medication-reconciliation note whose drug list is a single sentence.
+To cite one drug the model produces:
 
-Note 03 is a medication-reconciliation note whose drug list is one long sentence. To cite a single
-drug, the model repeatedly produces `"Current medication list reviewed: amlodipine 5 milligrams
-daily"` — a real prefix joined to a drug that appears later in the sentence, so not a substring.
-The six failures on that note are all this one shape.
+> "Current medication list reviewed: amlodipine 5 milligrams daily"
 
-I wrote a third prompt version targeting exactly this, with the failing string as a worked
-example. **It changed nothing** — same 4/10, same conditions. I did not ship it, because a prompt
-revision that cannot be shown to work is noise in the version history and a lie in the cache key.
+The opening words are real. The drug is real. That sentence is not: amlodipine appears later in
+the list, after three other drugs. It is a quote built out of the clinician's own words that
+nevertheless quotes nothing.
 
-So the honest position is: the prompt reduces this failure, it does not eliminate it, and the
-verifier is what makes that acceptable. Those six conditions reach the clinician clearly marked
-as unverified rather than silently presented as quoted fact.
+I tried the obvious thing first — a third prompt version naming that exact failure with the
+failing string as a worked example. **It changed nothing**: same 4/10, same conditions. I did not
+ship it. A prompt revision that cannot be shown to work is noise in the version history and a
+false entry in the cache key.
+
+The real problem was in the verifier, not the prompt. It had two answers — found and not found —
+for three situations, and was reporting *"this quote does not appear in the note"* for a quote
+made entirely of the note. That tells a clinician the model may have invented a finding, which is
+the wrong thing to tell them. So there is now a third status:
+
+| Status | Meaning | Counts as evidence |
+|---|---|---|
+| `exact` / `normalized` / `fuzzy` | Located as one passage | **Yes** |
+| `assembled` | Every fragment is in the note; the passage is not | **No** |
+| `not_found` | Cannot be located at all | **No** |
+
+A quote that fails contiguous matching is decomposed greedily: repeatedly take the longest prefix
+of what remains that occurs in the note. Covered by a few long fragments, it was assembled from
+real text. Needing many short ones, it was not — any string can be built from short fragments of
+a long note, so that guard is what stops the status laundering fabrications.
+
+Two boundaries matter, and both are tested:
+
+- `"Current medication list reviewed: **warfarin** 10 milligrams nightly"` — a real prefix with an
+  invented drug stays **`not_found`**. A genuine opening cannot carry an invention past the check.
+- `"Plan: increase metformin to twice daily"` where the note says `to 1000mg twice daily` stays
+  **`not_found`**, not assembled. Two real fragments separated by a short gap containing a number
+  mean the model quoted one sentence and dropped the dose out of the middle of it. That asserts a
+  plan the note does not, so it is a fabrication, not a citation of two passages.
+
+Assembled quotes are shown with a warning, excluded from the verified count, and highlighted at
+their longest genuine fragment — so the clinician sees the largest span of their own note the
+model actually cited, rather than nothing.
+
+**The prompt reduces this failure; it does not eliminate it. The verifier is what makes that
+acceptable.**
 
 One earlier draft of this README claimed 13/13 across all three notes. That figure was measured
 through a test harness that failed to strip the sample file's `Expected findings:` header, so the

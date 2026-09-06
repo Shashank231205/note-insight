@@ -33,7 +33,10 @@ export function ConditionCard({
   verification: QuoteVerificationResponse | undefined;
   onHighlight?: ((conditionId: string | null) => void) | undefined;
 }): JSX.Element {
-  const isUnverified = verification?.status === 'not_found';
+  // Assembled counts as unverified: the fragments are real, but the passage
+  // the model claims to quote does not exist in the note.
+  const isUnverified =
+    verification?.status === 'not_found' || verification?.status === 'assembled';
 
   return (
     <article

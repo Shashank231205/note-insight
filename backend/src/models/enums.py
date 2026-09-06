@@ -41,6 +41,11 @@ class QuoteVerificationStatus(str, Enum):
     EXACT = "exact"
     NORMALIZED = "normalized"
     FUZZY = "fuzzy"
+    # Every fragment of the quote is in the note, but not in this order and not
+    # adjacent — the model built a "verbatim" quote out of real pieces. Not a
+    # fabrication, and not evidence either: the passage it claims to quote does
+    # not exist.
+    ASSEMBLED = "assembled"
     NOT_FOUND = "not_found"
 
 

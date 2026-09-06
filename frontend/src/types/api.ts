@@ -20,7 +20,13 @@ export type AnalysisStatus = 'succeeded' | 'invalid_output' | 'provider_error';
 
 export type ProviderName = 'mock' | 'gemini';
 
-export type QuoteVerificationStatus = 'exact' | 'normalized' | 'fuzzy' | 'not_found';
+export type QuoteVerificationStatus =
+  | 'exact'
+  | 'normalized'
+  | 'fuzzy'
+  /** Every fragment is in the note, but no such passage exists. Not evidence. */
+  | 'assembled'
+  | 'not_found';
 
 export type ReviewStatus = 'pending' | 'reviewed';
 

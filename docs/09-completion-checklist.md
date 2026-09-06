@@ -174,3 +174,4 @@ Each was found by running the real system, not by reading the code.
 | 12 | `pydantic` pinned below what `google-genai` requires | Container build failed with ResolutionImpossible | Pin aligned; verified by resolving from an empty state |
 | 13 | `/openapi.json` served in production while `/docs` was disabled | The schema was public; hiding the UI hid nothing | Both governed by the same condition, with a test per environment |
 | 14 | Cache hit returned the earlier note's analysis | New note stayed "not analyzed" while the API reported success | Reused findings now stored as a document belonging to the requesting note |
+| 15 | Verifier reported a quote made of the note's own words as "not found" | Told the clinician the model may have invented a finding when it had not | Third status `assembled`, with guards so an invented tail or a dropped dose still fails |

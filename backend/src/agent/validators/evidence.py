@@ -12,7 +12,14 @@ Three tiers, tried in order:
   fuzzy       the best-matching window of the note is similar enough to be the
               same passage with a small transcription slip
 
-Anything below the fuzzy floor is `not_found`. Unverified conditions are
+Below the fuzzy floor the quote is decomposed: if it can be covered by a
+small number of long fragments that each appear in the note, it is `assembled`
+— the model stitched real passages into a quote that does not exist as written.
+That is reported separately from `not_found`, because "these words are in your
+note but not together" and "these words are not in your note" are different
+things for a clinician to act on. Neither counts as verified.
+
+Anything else is `not_found`. Unverified conditions are
 flagged and kept, never silently deleted: dropping them would destroy the
 signal the human-review dataset exists to capture, and the clinician is the
 right person to decide what a bad quote means.
@@ -39,6 +46,19 @@ FUZZY_MATCH_FLOOR = 0.85
 # Quotes shorter than this are too small for fuzzy matching to be meaningful:
 # almost any short string finds a plausible window in a long note.
 MIN_FUZZY_QUOTE_LENGTH = 20
+
+# Decomposition guards. Without them "assembled" would degenerate: any text can
+# be built from short fragments of a long note, so a quote reachable only in
+# many small pieces is a fabrication, not a stitched citation.
+MIN_FRAGMENT_LENGTH = 12
+MAX_FRAGMENTS = 4
+
+# A gap this small between two fragments means the model was quoting one
+# passage and dropped something out of the middle of it, not citing two
+# passages. When what it dropped contains a number — a dose, a lab value — the
+# quote asserts a finding the note does not, so it is a fabrication and not a
+# stitched citation.
+MAX_ELISION_GAP = 20
 
 _NUMBER = re.compile(r"\d+(?:\.\d+)?")
 
@@ -79,7 +99,54 @@ class EvidenceVerifier:
             span = self._original_span(normalized_offset, len(normalized_quote))
             return QuoteMatch(QuoteVerificationStatus.NORMALIZED, 1.0, span[0], span[1])
 
-        return self._fuzzy_match(normalized_quote)
+        fuzzy = self._fuzzy_match(normalized_quote)
+        if fuzzy.status is not QuoteVerificationStatus.NOT_FOUND:
+            return fuzzy
+
+        return self._assembled_match(normalized_quote, fallback=fuzzy)
+
+    def _assembled_match(self, normalized_quote: str, fallback: QuoteMatch) -> QuoteMatch:
+        """Decide whether the quote is real fragments joined, or invention.
+
+        Greedily consumes the quote by taking, at each step, the longest prefix
+        of what remains that occurs in the note. A quote covered by a few long
+        fragments was assembled from the clinician's own words; one that needs
+        many short fragments was not, because short strings match anything.
+        """
+        remaining = normalized_quote
+        fragments: list[tuple[int, int]] = []
+
+        while remaining:
+            length = len(remaining)
+            offset = -1
+            while length >= MIN_FRAGMENT_LENGTH:
+                offset = self._normalized.find(remaining[:length])
+                if offset != -1:
+                    break
+                length -= 1
+
+            if offset == -1 or length < MIN_FRAGMENT_LENGTH:
+                return fallback
+
+            fragments.append((offset, length))
+            if len(fragments) > MAX_FRAGMENTS:
+                return fallback
+            remaining = remaining[length:].strip()
+
+        if len(fragments) < 2:
+            return fallback
+
+        if self._elides_a_number(fragments):
+            return fallback
+
+        # Highlight the longest fragment: it is the largest span of the note the
+        # model actually cited, so the clinician is shown real text rather than
+        # nothing at all.
+        #
+        best_offset, best_length = max(fragments, key=lambda fragment: fragment[1])
+        span = self._original_span(best_offset, best_length)
+        covered = sum(length for _offset, length in fragments) / len(normalized_quote)
+        return QuoteMatch(QuoteVerificationStatus.ASSEMBLED, round(covered, 4), span[0], span[1])
 
     def _fuzzy_match(self, normalized_quote: str) -> QuoteMatch:
         if len(normalized_quote) < MIN_FUZZY_QUOTE_LENGTH:
@@ -110,6 +177,21 @@ class EvidenceVerifier:
 
         span = self._original_span(window_start, len(window))
         return QuoteMatch(QuoteVerificationStatus.FUZZY, round(score, 4), span[0], span[1])
+
+    def _elides_a_number(self, fragments: list[tuple[int, int]]) -> bool:
+        """True when the fragments skip a short run of text containing a number.
+
+        Distinguishes "quoted one sentence but left out the dose" from "quoted
+        two passages": the first leaves a small hole in otherwise continuous
+        text, the second jumps between distant parts of the note.
+        """
+        ordered = sorted(fragments)
+        pairs = zip(ordered, ordered[1:], strict=False)
+        for (offset, length), (next_offset, _next_length) in pairs:
+            gap = self._normalized[offset + length : next_offset]
+            if 0 < len(gap) <= MAX_ELISION_GAP and _NUMBER.search(gap):
+                return True
+        return False
 
     def _original_span(self, normalized_start: int, normalized_length: int) -> tuple[int, int]:
         """Translate a span in normalized space back to the clinician's text.

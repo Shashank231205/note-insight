@@ -60,7 +60,17 @@ class QuoteVerification(BaseModel):
 
     @property
     def is_verified(self) -> bool:
-        return self.status is not QuoteVerificationStatus.NOT_FOUND
+        """Only a quote located as one passage counts as verified.
+
+        ASSEMBLED is deliberately excluded. Its fragments are real, which is
+        worth telling the clinician, but no such passage exists in the note and
+        counting it as evidence would defeat the point of checking.
+        """
+        return self.status in {
+            QuoteVerificationStatus.EXACT,
+            QuoteVerificationStatus.NORMALIZED,
+            QuoteVerificationStatus.FUZZY,
+        }
 
 
 class VerificationReport(BaseModel):

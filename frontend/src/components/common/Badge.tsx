@@ -79,7 +79,18 @@ const VERIFICATION_LABELS: Record<QuoteVerificationStatus, string> = {
   exact: 'Evidence verified',
   normalized: 'Evidence verified',
   fuzzy: 'Evidence closely matched',
+  assembled: 'Quote pieced together from separate passages',
   not_found: 'Quote not found in note',
+};
+
+const VERIFICATION_TITLES: Record<QuoteVerificationStatus, string> = {
+  exact: 'This quote was located in the original note.',
+  normalized: 'This quote was located in the original note.',
+  fuzzy: 'This quote was located in the original note.',
+  assembled:
+    'Each part of this quote appears in the note, but not together and not in this order. ' +
+    'The wording is the clinician’s; the passage is not. Check it before accepting.',
+  not_found: 'This quote could not be located in the note. Treat it as unverified.',
 };
 
 /**
@@ -91,16 +102,15 @@ export function EvidenceBadge({
 }: {
   status: QuoteVerificationStatus;
 }): JSX.Element {
-  const isVerified = status !== 'not_found';
+  // Assembled quotes are not evidence: no such passage exists in the note.
+  // They are shown differently from a fabrication because the distinction is
+  // actionable — the words are real, the citation is not.
+  const isVerified = status !== 'not_found' && status !== 'assembled';
 
   return (
     <span
       className={`${styles.badge} ${isVerified ? styles.verified : styles.unverified}`}
-      title={
-        isVerified
-          ? 'This quote was located in the original note.'
-          : 'This quote could not be located in the note. Treat it as unverified.'
-      }
+      title={VERIFICATION_TITLES[status]}
     >
       {isVerified ? '✓' : '⚠'} {VERIFICATION_LABELS[status]}
     </span>
