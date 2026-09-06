@@ -11,6 +11,41 @@ Built for the DoctusTech technical assessment.
 
 ---
 
+## Live application
+
+| | |
+|---|---|
+| **App** | **https://note-insight-eight.vercel.app** |
+| API | https://note-insight-nrao.onrender.com |
+| Repository | https://github.com/Shashank231205/note-insight |
+
+**Test account** — or sign up yourself, self-registration is open:
+
+```
+reviewer@note-insight.demo
+NoteInsight2026!
+```
+
+That account already has the three sample notes submitted and analysed, one of them reviewed,
+so the history page, the AI-versus-human diff and the inline evidence highlighting are all
+visible without waiting on a cold start and a model call first.
+
+> **The first request takes 30–50 seconds.** Render's free tier stops the container after 15
+> minutes idle. The login screen pings `/health` on mount so the backend wakes while you type
+> your password, and says "connecting" rather than pretending to be fast. Every request after
+> that is normal — an analysis takes about six seconds, most of it Gemini.
+
+### Worth looking at first
+
+- **`PT-1156`** — 4 of its 10 evidence quotes are flagged **unverified**. That is the verifier
+  working, not a bug: the model cites one drug from a long medication list by joining the list's
+  opening words to a drug appearing later in the sentence, producing a quote that is not in the
+  note. It is explained under [how we know the model didn't make it up](#how-we-know-the-model-didnt-make-it-up).
+- **`PT-2041`** — reviewed, so the note page shows what the model said beside what the clinician
+  changed.
+
+---
+
 ## Contents
 
 - [Running it locally](#running-it-locally)

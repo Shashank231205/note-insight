@@ -2,7 +2,7 @@
 
 Every requirement in the brief, traced to where it is satisfied and how it was verified.
 
-Legend: **DONE** verified working · **CUT** deliberate, documented · **PENDING** deployment stage
+Legend: **DONE** verified working · **CUT** deliberate, documented
 
 ---
 
@@ -128,10 +128,10 @@ Legend: **DONE** verified working · **CUT** deliberate, documented · **PENDING
 | 9.6 | README: problems hit and what was tried | DONE |
 | 9.7 | Prompts in a findable file | DONE — `backend/src/agent/prompts/` |
 | 9.8 | 3 synthetic sample notes | DONE — `docs/sample-notes/` |
-| 9.9 | Incremental commit history | DONE — 30+ scoped commits |
+| 9.9 | Incremental commit history | DONE — 45+ scoped commits |
 | 9.10 | No secrets in the repo | DONE — `.env` gitignored; verified with `git check-ignore` |
-| 9.11 | Public URL | **PENDING** — deployment stage |
-| 9.12 | Test account | **PENDING** — seeded at deployment; self sign-up works today |
+| 9.11 | Public URL | DONE — https://note-insight-eight.vercel.app |
+| 9.12 | Test account | DONE — reviewer@note-insight.demo, seeded with three analysed notes; self sign-up also open |
 
 ---
 
@@ -155,11 +155,22 @@ Each was found by running the real system, not by reading the code.
 
 ---
 
-## Remaining before submission
+## Deployment (brief §4.4)
 
-1. **Rotate the Firebase service-account key** — the current one was exposed in a chat transcript.
-2. **Deploy** — backend to Render, frontend to Vercel, then set `CORS_ALLOWED_ORIGINS` to the real
-   origin and add the Vercel domain to Firebase authorized domains.
-3. **Seed a reviewer account** with the three sample notes analysed and one reviewed.
-4. **Clean the development data** out of Firestore before handing over the URL.
-5. **Confirm the hours figure** in the README against your own record.
+| # | Requirement | Status | Verified by |
+|---|---|---|---|
+| 10.1 | Reachable at a public URL | DONE | Frontend and API both answering |
+| 10.2 | Frontend on Vercel | DONE | SPA rewrite verified — deep routes do not 404 |
+| 10.3 | Backend on Render | DONE | Docker, free tier, no card required |
+| 10.4 | Free-tier only | DONE | Vercel, Render, Firebase Spark, Gemini free tier |
+| 10.5 | Working test account | DONE | `reviewer@note-insight.demo`, three notes seeded |
+| 10.6 | Production hardening | DONE | `/docs` and `/openapi.json` return 404; CORS allows one origin |
+| 10.7 | Full journey on production | DONE | Sign-up, note, analysis 6/6 verified, review, history, isolation all checked live |
+
+## Defects found after deployment
+
+| # | Bug | Impact | Fix |
+|---|---|---|---|
+| 12 | `pydantic` pinned below what `google-genai` requires | Container build failed with ResolutionImpossible | Pin aligned; verified by resolving from an empty state |
+| 13 | `/openapi.json` served in production while `/docs` was disabled | The schema was public; hiding the UI hid nothing | Both governed by the same condition, with a test per environment |
+| 14 | Cache hit returned the earlier note's analysis | New note stayed "not analyzed" while the API reported success | Reused findings now stored as a document belonging to the requesting note |
