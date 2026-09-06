@@ -66,11 +66,41 @@ class AnalysisService:
                     "analysis_cache_hit",
                     extra={"note_id": note.note_id, "analysis_id": cached.analysis_id},
                 )
-                # The stored document keeps cache_hit False — it records how that
-                # analysis was produced. This copy records how the caller got it.
-                return cached.model_copy(update={"cache_hit": True})
+                if cached.note_id == note.note_id:
+                    # The stored document keeps cache_hit False — it records how
+                    # that analysis was produced. This copy records how the
+                    # caller got it.
+                    return cached.model_copy(update={"cache_hit": True})
 
-        analysis = await self._run_pipeline(caller, note)
+                # Same text, different note. Returning the other note's analysis
+                # would leave this note with none of its own: the caller sees a
+                # success while the note still reports "not analyzed", because
+                # nothing was ever linked to it. So the findings are reused —
+                # no second model call — but as a document belonging to this
+                # note. Latency and tokens are zeroed because this analysis made
+                # no call; the original keeps the true cost, so summing token
+                # usage across analyses still reports real spend.
+                return await self._store_analysis(
+                    caller,
+                    note,
+                    cached.model_copy(
+                        update={
+                            "analysis_id": new_id(),
+                            "note_id": note.note_id,
+                            "cache_hit": True,
+                            "latency_ms": 0,
+                            "token_usage": None,
+                            "created_at": datetime.now(timezone.utc),
+                        }
+                    ),
+                )
+
+        return await self._store_analysis(caller, note, await self._run_pipeline(caller, note))
+
+    async def _store_analysis(
+        self, caller: AuthenticatedUser, note: Note, analysis: Analysis
+    ) -> Analysis:
+        """Persist an analysis and point its note at it, in that order."""
         stored = await self._analyses.create(analysis)
 
         await self._notes.apply_analysis_result(

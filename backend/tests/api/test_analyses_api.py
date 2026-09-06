@@ -355,3 +355,68 @@ class TestCacheReporting:
 
         assert forced["cache_hit"] is False
         assert forced["analysis_id"] != first["analysis_id"]
+
+
+class TestCacheAcrossNotes:
+    """A cache hit must never leave the note it was requested for unanalysed.
+
+    The cache key is content, prompt version and model — deliberately not the
+    note id, so submitting the same text twice does not pay twice. But the
+    analysis that comes back has to belong to the note that asked for it.
+    Returning the earlier note's document reports success while the new note
+    still says "not analyzed", because nothing was ever linked to it.
+    """
+
+    def test_identical_text_on_a_second_note_gets_its_own_analysis(
+        self, client: TestClient, marina: Actor
+    ) -> None:
+        first_note = submit_note(client, marina)
+        first = analyze(client, marina, first_note)
+
+        second_note = submit_note(client, marina)
+        second = analyze(client, marina, second_note)
+
+        assert second["note_id"] == second_note
+        assert second["analysis_id"] != first["analysis_id"]
+        assert second["cache_hit"] is True
+
+    def test_the_second_note_reports_itself_as_analysed(
+        self, client: TestClient, marina: Actor
+    ) -> None:
+        submit_note(client, marina)
+        second_note = submit_note(client, marina)
+
+        analyze(client, marina, second_note)
+
+        note = client.get(f"/api/v1/notes/{second_note}", headers=marina.headers).json()
+        assert note["analysis_count"] == 1
+        assert note["latest_analysis_id"] is not None
+        assert note["condition_count"] > 0
+
+    def test_a_reused_analysis_is_listed_under_the_new_note(
+        self, client: TestClient, marina: Actor
+    ) -> None:
+        submit_note(client, marina)
+        second_note = submit_note(client, marina)
+        analyze(client, marina, second_note)
+
+        listed = client.get(f"/api/v1/notes/{second_note}/analyses", headers=marina.headers).json()
+
+        assert len(listed) == 1
+        assert listed[0]["note_id"] == second_note
+
+    def test_reuse_does_not_bill_the_second_note_for_a_call_it_never_made(
+        self, client: TestClient, marina: Actor
+    ) -> None:
+        """Zero latency because no call was made.
+
+        The original analysis keeps the real cost, so summing usage across
+        analyses still reports actual spend rather than double-counting one
+        model call for every note that reused it.
+        """
+        submit_note(client, marina)
+        second_note = submit_note(client, marina)
+
+        second = analyze(client, marina, second_note)
+
+        assert second["latency_ms"] == 0
